@@ -90,4 +90,5 @@ jobs:
           git config user.email "bot@noreply.github.com"
           git add wovi_results.csv wovi_state.json
           git diff --staged --quiet || git commit -m "results [skip ci]"
+          git pull --rebase origin main || true
           git push
