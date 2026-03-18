@@ -3,12 +3,13 @@ name: WOVI Booking Monitor
 on:
   schedule:
     # Brisbane time (AEST = UTC+10)
-    # 6:30am–10:00am Brisbane = 8:30pm–12:00am UTC
-    # Every 1 minute during peak window
+    # 6:30am–10:00am Brisbane = 8:30pm–12:00am UTC — every 1 minute
     - cron: '*/1 20,21,22,23 * * *'
     - cron: '*/1 0 * * *'
-    # Every 5 minutes rest of day
+    # Rest of day — every 5 minutes
     - cron: '*/5 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19 * * *'
+    # 5pm Adelaide time (ACST = UTC+9:30) daily summary
+    - cron: '30 7 * * *'
   workflow_dispatch:
 
 jobs:
@@ -41,41 +42,42 @@ jobs:
 
       - name: Run WOVI monitor
         env:
-          GMAIL_ADDRESS:          ${{ secrets.GMAIL_ADDRESS }}
-          GMAIL_APP_PASSWORD:     ${{ secrets.GMAIL_APP_PASSWORD }}
-          NOTIFY_EMAIL:           ${{ secrets.NOTIFY_EMAIL }}
-          TWOCAPTCHA_API_KEY:     ${{ secrets.TWOCAPTCHA_API_KEY }}
-          WOVI_CRN:               ${{ secrets.WOVI_CRN }}
-          WOVI_FIRST_NAME:        ${{ secrets.WOVI_FIRST_NAME }}
-          WOVI_LAST_NAME:         ${{ secrets.WOVI_LAST_NAME }}
-          WOVI_ADDRESS:           ${{ secrets.WOVI_ADDRESS }}
-          WOVI_SUBURB:            ${{ secrets.WOVI_SUBURB }}
-          WOVI_POSTCODE:          ${{ secrets.WOVI_POSTCODE }}
-          WOVI_EMAIL:             ${{ secrets.WOVI_EMAIL }}
-          WOVI_PHONE:             ${{ secrets.WOVI_PHONE }}
-          WOVI_V1_CUTOFF_DATE:    ${{ secrets.WOVI_V1_CUTOFF_DATE }}
-          WOVI_V1_VEHICLE_TYPE:   ${{ secrets.WOVI_V1_VEHICLE_TYPE }}
-          WOVI_V1_VIN:            ${{ secrets.WOVI_V1_VIN }}
-          WOVI_V1_MAKE:           ${{ secrets.WOVI_V1_MAKE }}
-          WOVI_V1_MODEL:          ${{ secrets.WOVI_V1_MODEL }}
-          WOVI_V1_YEAR:           ${{ secrets.WOVI_V1_YEAR }}
-          WOVI_V1_COLOUR:         ${{ secrets.WOVI_V1_COLOUR }}
-          WOVI_V1_DAMAGE:         ${{ secrets.WOVI_V1_DAMAGE }}
+          GMAIL_ADDRESS:           ${{ secrets.GMAIL_ADDRESS }}
+          GMAIL_APP_PASSWORD:      ${{ secrets.GMAIL_APP_PASSWORD }}
+          NOTIFY_EMAIL:            ${{ secrets.NOTIFY_EMAIL }}
+          TWOCAPTCHA_API_KEY:      ${{ secrets.TWOCAPTCHA_API_KEY }}
+          DAILY_SUMMARY:           ${{ github.event.schedule == '30 7 * * *' && 'true' || 'false' }}
+          WOVI_CRN:                ${{ secrets.WOVI_CRN }}
+          WOVI_FIRST_NAME:         ${{ secrets.WOVI_FIRST_NAME }}
+          WOVI_LAST_NAME:          ${{ secrets.WOVI_LAST_NAME }}
+          WOVI_ADDRESS:            ${{ secrets.WOVI_ADDRESS }}
+          WOVI_SUBURB:             ${{ secrets.WOVI_SUBURB }}
+          WOVI_POSTCODE:           ${{ secrets.WOVI_POSTCODE }}
+          WOVI_EMAIL:              ${{ secrets.WOVI_EMAIL }}
+          WOVI_PHONE:              ${{ secrets.WOVI_PHONE }}
+          WOVI_V1_CUTOFF_DATE:     ${{ secrets.WOVI_V1_CUTOFF_DATE }}
+          WOVI_V1_VEHICLE_TYPE:    ${{ secrets.WOVI_V1_VEHICLE_TYPE }}
+          WOVI_V1_VIN:             ${{ secrets.WOVI_V1_VIN }}
+          WOVI_V1_MAKE:            ${{ secrets.WOVI_V1_MAKE }}
+          WOVI_V1_MODEL:           ${{ secrets.WOVI_V1_MODEL }}
+          WOVI_V1_YEAR:            ${{ secrets.WOVI_V1_YEAR }}
+          WOVI_V1_COLOUR:          ${{ secrets.WOVI_V1_COLOUR }}
+          WOVI_V1_DAMAGE:          ${{ secrets.WOVI_V1_DAMAGE }}
           WOVI_V1_PURCHASE_METHOD: ${{ secrets.WOVI_V1_PURCHASE_METHOD }}
-          WOVI_V1_PURCHASED_FROM: ${{ secrets.WOVI_V1_PURCHASED_FROM }}
-          WOVI_V2_CUTOFF_DATE:    ${{ secrets.WOVI_V2_CUTOFF_DATE }}
-          WOVI_V2_VEHICLE_TYPE:   ${{ secrets.WOVI_V2_VEHICLE_TYPE }}
-          WOVI_V2_VIN:            ${{ secrets.WOVI_V2_VIN }}
-          WOVI_V2_MAKE:           ${{ secrets.WOVI_V2_MAKE }}
-          WOVI_V2_MODEL:          ${{ secrets.WOVI_V2_MODEL }}
-          WOVI_V2_YEAR:           ${{ secrets.WOVI_V2_YEAR }}
-          WOVI_V2_COLOUR:         ${{ secrets.WOVI_V2_COLOUR }}
-          WOVI_V2_DAMAGE:         ${{ secrets.WOVI_V2_DAMAGE }}
+          WOVI_V1_PURCHASED_FROM:  ${{ secrets.WOVI_V1_PURCHASED_FROM }}
+          WOVI_V2_CUTOFF_DATE:     ${{ secrets.WOVI_V2_CUTOFF_DATE }}
+          WOVI_V2_VEHICLE_TYPE:    ${{ secrets.WOVI_V2_VEHICLE_TYPE }}
+          WOVI_V2_VIN:             ${{ secrets.WOVI_V2_VIN }}
+          WOVI_V2_MAKE:            ${{ secrets.WOVI_V2_MAKE }}
+          WOVI_V2_MODEL:           ${{ secrets.WOVI_V2_MODEL }}
+          WOVI_V2_YEAR:            ${{ secrets.WOVI_V2_YEAR }}
+          WOVI_V2_COLOUR:          ${{ secrets.WOVI_V2_COLOUR }}
+          WOVI_V2_DAMAGE:          ${{ secrets.WOVI_V2_DAMAGE }}
           WOVI_V2_PURCHASE_METHOD: ${{ secrets.WOVI_V2_PURCHASE_METHOD }}
-          WOVI_V2_PURCHASED_FROM: ${{ secrets.WOVI_V2_PURCHASED_FROM }}
+          WOVI_V2_PURCHASED_FROM:  ${{ secrets.WOVI_V2_PURCHASED_FROM }}
         run: python wovi_monitor.py
 
-      - name: Save results CSV
+      - name: Save results and state
         if: always()
         run: |
           git config user.name  "WOVI Monitor Bot"
