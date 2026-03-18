@@ -98,7 +98,7 @@ jobs:
           git config user.name  "WOVI Bot"
           git config user.email "bot@noreply.github.com"
           git fetch origin main
-          git checkout origin/main -- wovi_results.csv wovi_state.json 2>/dev/null || true
+          git reset --soft origin/main
           git add wovi_results.csv wovi_state.json
           git diff --staged --quiet || git commit -m "results [skip ci]"
-          git push origin HEAD:main || true
+          git push origin HEAD:main
