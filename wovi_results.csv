@@ -444,3 +444,5 @@ Date,Time,Vehicle,Location,Result,Detail
 19/03/2026,08:35:28 AM,Vehicle 2,Brisbane,Earlier slot found,2026-06-01
 19/03/2026,08:40:03 AM,Vehicle 1,All locations,No earlier slots,
 19/03/2026,08:40:04 AM,Vehicle 2,Brisbane,Earlier slot found,2026-06-01
+19/03/2026,08:44:59 AM,Vehicle 1,All locations,No earlier slots,
+19/03/2026,08:45:01 AM,Vehicle 2,Brisbane,Earlier slot found,2026-06-01
