@@ -496,6 +496,15 @@ def book_slot(location: str, date_dt: datetime, date_text: str,
         log(f"[{vehicle_label}] CAPTCHA token injected.")
         time.sleep(1)
 
+        # TEST MODE: take screenshot and stop before clicking submit
+        if test_mode:
+            log(f"[{vehicle_label}] TEST MODE — CAPTCHA solved. Taking screenshot before final submit...")
+            screenshot_path = Path(__file__).parent / f"test_final_page_{vehicle_label.replace(' ','_')}.png"
+            driver.save_screenshot(str(screenshot_path))
+            log(f"[{vehicle_label}] Screenshot saved: {screenshot_path.name}")
+            log(f"[{vehicle_label}] TEST COMPLETE — everything worked up to final submit button ✅")
+            return False
+
         # ── Submit ────────────────────────────────────────────────────────────
         log(f"[{vehicle_label}] Submitting...")
         click_next(driver, wait)
