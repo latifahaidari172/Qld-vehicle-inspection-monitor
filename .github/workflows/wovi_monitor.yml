@@ -12,6 +12,10 @@ on:
         description: 'Force daily summary? (true/false)'
         required: false
         default: 'false'
+      test_mode:
+        description: 'Test mode — stop before CAPTCHA? (true/false)'
+        required: false
+        default: 'false'
 
 jobs:
   check-wovi:
@@ -49,6 +53,7 @@ jobs:
           NOTIFY_EMAIL:            ${{ secrets.NOTIFY_EMAIL }}
           TWOCAPTCHA_API_KEY:      ${{ secrets.TWOCAPTCHA_API_KEY }}
           DAILY_SUMMARY:           ${{ env.DAILY_SUMMARY }}
+          TEST_MODE:               ${{ github.event.inputs.test_mode || 'false' }}
           WOVI_CRN:                ${{ secrets.WOVI_CRN }}
           WOVI_FIRST_NAME:         ${{ secrets.WOVI_FIRST_NAME }}
           WOVI_LAST_NAME:          ${{ secrets.WOVI_LAST_NAME }}
@@ -78,6 +83,14 @@ jobs:
           WOVI_V2_PURCHASE_METHOD: ${{ secrets.WOVI_V2_PURCHASE_METHOD }}
           WOVI_V2_PURCHASED_FROM:  ${{ secrets.WOVI_V2_PURCHASED_FROM }}
         run: python wovi_monitor.py
+
+      - name: Upload test screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-screenshots-${{ github.run_number }}
+          path: test_final_page_*.png
+          if-no-files-found: ignore
 
       - name: Save results
         if: always()
