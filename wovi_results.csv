@@ -402,5 +402,9 @@ Date,Time,Vehicle,Location,Result,Detail
 19/03/2026,12:56:45 AM,Vehicle 1,All locations,No earlier slots,
 19/03/2026,12:56:47 AM,Vehicle 2,Brisbane,Earlier slot found,2026-06-01
 19/03/2026,12:56:47 AM,Vehicle 2,Brisbane,BOOKING FAILED,2026-06-01
-19/03/2026,01:04:06 AM,Vehicle 1,All locations,No earlier slots,
-19/03/2026,01:04:08 AM,Vehicle 2,Brisbane,Earlier slot found,2026-06-01
+19/03/2026,01:03:44 AM,Vehicle 1,All locations,No earlier slots,
+19/03/2026,01:03:45 AM,Vehicle 2,Brisbane,Earlier slot found,2026-06-01
+19/03/2026,01:03:45 AM,Vehicle 2,Brisbane,BOOKING FAILED,2026-06-01
+19/03/2026,01:04:50 AM,Vehicle 1,All locations,No earlier slots,
+19/03/2026,01:04:51 AM,Vehicle 2,Brisbane,Earlier slot found,2026-06-01
+19/03/2026,01:04:51 AM,Vehicle 2,Brisbane,BOOKING FAILED,2026-06-01
