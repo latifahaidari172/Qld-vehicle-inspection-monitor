@@ -587,16 +587,7 @@ def process_vehicle(vehicle_label: str, vehicle: dict, owner: dict,
     else:
         write_csv(now, vehicle_label, earliest_location,
                   "BOOKING FAILED", earliest_text)
-        send_email(
-            f"⚠️ WOVI slot found but booking failed — {vehicle_label} — act now!",
-            f"An earlier slot was found but auto-booking failed.\n\n"
-            f"Vehicle:  {vehicle_label} ({vehicle['make']} {vehicle['model']})\n"
-            f"Location: {earliest_location}\n"
-            f"Date:     {earliest_text}\n\n"
-            f"Please book manually NOW:\n{BOOKING_URL}\n\n"
-            f"Slot may still be available — act quickly!",
-            gmail_addr, gmail_pass, notify_addr
-        )
+        log(f"[{vehicle_label}] Booking failed — logged to CSV only.")
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
@@ -747,13 +738,7 @@ def run():
                     )
                 else:
                     write_csv(now, vehicle_label, earliest_location, "BOOKING FAILED", earliest_text)
-                    send_email(
-                        f"WOVI slot found but booking failed — {vehicle_label}",
-                        f"Earlier slot found but auto-booking failed.\n\n"
-                        f"Vehicle: {vehicle_label}\nLocation: {earliest_location}\nDate: {earliest_text}\n\n"
-                        f"Book manually NOW: {BOOKING_URL}",
-                        gmail_addr, gmail_pass, notify_addr
-                    )
+        log(f"[{vehicle_label}] Booking failed — logged to CSV only.")
 
     finally:
         try:
@@ -859,16 +844,7 @@ def process_vehicle(vehicle_label: str, vehicle: dict, owner: dict,
     else:
         write_csv(now, vehicle_label, earliest_location,
                   "BOOKING FAILED", earliest_text)
-        send_email(
-            f"⚠️ WOVI slot found but booking failed — {vehicle_label} — act now!",
-            f"An earlier slot was found but auto-booking failed.\n\n"
-            f"Vehicle:  {vehicle_label} ({vehicle['make']} {vehicle['model']})\n"
-            f"Location: {earliest_location}\n"
-            f"Date:     {earliest_text}\n\n"
-            f"Please book manually NOW:\n{BOOKING_URL}\n\n"
-            f"Slot may still be available — act quickly!",
-            gmail_addr, gmail_pass, notify_addr
-        )
+        log(f"[{vehicle_label}] Booking failed — logged to CSV only.")
 
 
 # ── Daily 5pm summary ─────────────────────────────────────────────────────────
