@@ -419,9 +419,10 @@ def book_slot(location: str, date_dt: datetime, date_str: str,
 
         # TEST MODE: screenshot and stop
         if test_mode:
-            path = Path(__file__).parent / f"test_final_{vehicle_label.replace(' ','_')}.png"
+            path = Path(__file__).parent / "test_screenshot.png"
             driver.save_screenshot(str(path))
-            log(f"[{vehicle_label}] TEST MODE — screenshot saved. All steps passed! ✅")
+            log(f"[{vehicle_label}] TEST MODE — screenshot saved: test_screenshot.png ✅")
+            log(f"[{vehicle_label}] All steps passed! ✅")
             return False
 
         # Submit
