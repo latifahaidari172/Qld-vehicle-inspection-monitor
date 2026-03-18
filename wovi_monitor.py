@@ -303,6 +303,13 @@ def book_slot(location: str, date_dt: datetime, date_str: str,
                 break
         time.sleep(3)
 
+        if test_mode:
+            driver.execute_script("window.scrollTo(0,0)")
+            time.sleep(0.5)
+            driver.set_window_size(1280, 3000)
+            driver.save_screenshot(str(Path(__file__).parent / "step1_location_date.png"))
+            log(f"[{vehicle_label}] Screenshot: step1_location_date.png")
+
         # Click target date using Angular scope value
         try:
             WebDriverWait(driver, 8).until(lambda d: len(
@@ -385,6 +392,13 @@ def book_slot(location: str, date_dt: datetime, date_str: str,
         click_next(driver, wait)
         time.sleep(2)
 
+        if test_mode:
+            driver.execute_script("window.scrollTo(0,0)")
+            time.sleep(0.5)
+            driver.set_window_size(1280, 3000)
+            driver.save_screenshot(str(Path(__file__).parent / "step3_vehicle_details.png"))
+            log(f"[{vehicle_label}] Screenshot: step3_vehicle_details.png")
+
         # Customer details
         log(f"[{vehicle_label}] Filling customer details...")
         fill(driver, owner["crn"],        "crn", "CRN", "licenceNumber", "crnLicence")
@@ -398,6 +412,13 @@ def book_slot(location: str, date_dt: datetime, date_str: str,
 
         click_next(driver, wait)
         time.sleep(2)
+
+        if test_mode:
+            driver.execute_script("window.scrollTo(0,0)")
+            time.sleep(0.5)
+            driver.set_window_size(1280, 3000)
+            driver.save_screenshot(str(Path(__file__).parent / "step4_customer_details.png"))
+            log(f"[{vehicle_label}] Screenshot: step4_customer_details.png")
 
         # Solve CAPTCHA
         log(f"[{vehicle_label}] Solving CAPTCHA...")
@@ -419,10 +440,12 @@ def book_slot(location: str, date_dt: datetime, date_str: str,
 
         # TEST MODE: screenshot and stop
         if test_mode:
-            path = Path(__file__).parent / "test_screenshot.png"
-            driver.save_screenshot(str(path))
-            log(f"[{vehicle_label}] TEST MODE — screenshot saved: test_screenshot.png ✅")
-            log(f"[{vehicle_label}] All steps passed! ✅")
+            driver.execute_script("window.scrollTo(0,0)")
+            time.sleep(0.5)
+            driver.set_window_size(1280, 3000)
+            driver.save_screenshot(str(Path(__file__).parent / "step5_final_page.png"))
+            log(f"[{vehicle_label}] Screenshot: step5_final_page.png")
+            log(f"[{vehicle_label}] TEST MODE — All steps passed! ✅")
             return False
 
         # Submit
