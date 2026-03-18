@@ -55,7 +55,8 @@ LOCATIONS = [
 
 def log(msg: str, level: str = "INFO"):
     ts = adelaide_now().strftime("%d/%m/%Y %I:%M:%S %p")
-    print(f"[{ts}] [{level}] {msg}", flush=True)
+    prefix = "" if level == "INFO" else f"[{level}] "
+    print(f"[{ts}] {prefix}{msg}", flush=True)
 
 
 def get_env(key: str, required: bool = True) -> str:
@@ -234,149 +235,75 @@ def click_next(driver, wait):
 
 def find_earliest_slot(cutoff: datetime, vehicle_label: str) -> tuple | None:
     """
-    Opens WOVI bookings page, checks all 4 locations for dates before cutoff.
-    Returns (datetime, date_text, location) for the earliest slot found,
-    or None if nothing available.
+    Opens WOVI, checks all 4 locations for dates before cutoff.
+    Returns (datetime, date_str, location) for earliest slot or None.
     """
     driver = make_driver()
     wait   = WebDriverWait(driver, 20)
     all_slots = []
 
     try:
-        log(f"[{vehicle_label}] Loading WOVI bookings page...")
         driver.get(BOOKING_URL)
         time.sleep(4)
-        log(f"[{vehicle_label}] Page title: {driver.title}")
 
         for location in LOCATIONS:
-            log(f"[{vehicle_label}] Checking: {location}")
             try:
-                # Find location dropdown
+                # Select location
                 loc_sel = wait.until(EC.presence_of_element_located((By.XPATH,
-                    "//select[.//option[contains(text(),'Brisbane') or "
-                    "contains(text(),'Eagle Farm') or "
-                    "contains(text(),'Yatala') or "
-                    "contains(text(),'Narangba') or "
-                    "contains(text(),'Burleigh')]]"
+                    "//select[.//option[contains(text(),'Brisbane')]]"
                 )))
-                select = Select(loc_sel)
-
-                # Find and select matching location
-                matched = False
-                for opt in select.options:
+                for opt in Select(loc_sel).options:
                     if location.lower() in opt.text.lower():
-                        select.select_by_visible_text(opt.text)
-                        log(f"  Selected: {opt.text}")
-                        matched = True
+                        Select(loc_sel).select_by_visible_text(opt.text)
                         break
-
-                if not matched:
-                    log(f"  Location '{location}' not in dropdown — available: "
-                        f"{[o.text for o in select.options]}", "WARN")
+                else:
+                    log(f"[{vehicle_label}] {location}: not found in dropdown")
                     continue
 
-                time.sleep(5)  # wait for calendar to load
-
-                # Wait until at least one td.day appears (up to 10s)
+                # Wait for Angular calendar to render
                 try:
-                    WebDriverWait(driver, 10).until(
-                        EC.presence_of_element_located((By.XPATH,
-                            "//td[contains(@class,'day')]"
-                        ))
-                    )
+                    WebDriverWait(driver, 12).until(lambda d: len(
+                        d.find_elements(By.XPATH, "//div[@ng-click='setDateValue(day)']")
+                    ) > 0)
                 except TimeoutException:
-                    log(f"  Calendar did not load for {location}", "WARN")
+                    log(f"[{vehicle_label}] {location}: calendar timeout")
+                    continue
 
-                # Log ALL day cells including disabled so we can see what's there
-                all_cells = driver.find_elements(By.XPATH, "//td[contains(@class,'day')]")
-                log(f"  Total day cells (incl disabled): {len(all_cells)}")
-                if all_cells:
-                    sample = all_cells[0]
-                    log(f"  Sample cell class='{sample.get_attribute('class')}' text='{sample.text}'")
-                    log(f"  Sample cell data-date='{sample.get_attribute('data-date')}'")
+                # Read available dates via Angular scope
+                items = driver.find_elements(By.XPATH, "//div[@ng-click='setDateValue(day)']")
+                found = 0
+                for item in items:
+                    try:
+                        d = driver.execute_script(
+                            "try{var s=angular.element(arguments[0]).scope();"
+                            "if(!s||!s.day||!s.day.available||!s.day.thisMonth) return null;"
+                            "return s.day.value;}catch(e){return null;}", item
+                        )
+                        if not d:
+                            continue
+                        dt = parse_date(d)
+                        if dt and dt < cutoff:
+                            all_slots.append((dt, d, location))
+                            found += 1
+                    except Exception:
+                        continue
 
-                # WOVI uses AngularJS — day items have ng-click='setDateValue(day)'
-                # Angular scope contains day.value (ISO date), day.available (bool)
-                # We read directly via JavaScript scope — no iframe needed
+                log(f"[{vehicle_label}] {location}: {found} slot(s) before cutoff")
 
-                for month_i in range(4):
-                    time.sleep(2)
-
-                    # Get all day items for this month
-                    day_items = driver.find_elements(By.XPATH,
-                        "//div[@ng-click='setDateValue(day)']"
-                    )
-                    log(f"  Month {month_i+1}: {len(day_items)} day items")
-
-                    for item in day_items:
-                        try:
-                            # Read full day data from Angular scope
-                            day_data = driver.execute_script(
-                                "try{"
-                                "  var s=angular.element(arguments[0]).scope();"
-                                "  if(!s||!s.day) return null;"
-                                "  return {value:s.day.value, available:s.day.available, "
-                                "          thisMonth:s.day.thisMonth, remaining:s.day.remaining};"
-                                "}catch(e){return null;}",
-                                item
-                            )
-                            if not day_data:
-                                continue
-
-                            # Only consider days in this month that are available
-                            if not day_data.get("available"):
-                                continue
-                            if not day_data.get("thisMonth"):
-                                continue
-
-                            day_value = day_data.get("value")
-                            remaining = day_data.get("remaining", 0)
-
-                            log(f"    Available: {day_value} remaining={remaining}")
-
-                            dt = parse_date(str(day_value))
-                            if dt and dt < cutoff:
-                                log(f"  ✅ Earlier slot at {location}: {day_value} ({remaining} remaining)")
-                                all_slots.append((dt, day_value, location))
-
-                        except Exception as ex:
-                            log(f"    Item error: {ex}", "WARN")
-
-                    # Navigate to next month
-                    if month_i < 3:
-                        try:
-                            next_btn = driver.find_element(By.XPATH,
-                                "//*[@ng-click='nextMonth()' or @ng-click='vm.nextMonth()' or "
-                                "contains(@class,'next-month') or @aria-label='Next month'] | "
-                                "//button[contains(@class,'next')] | "
-                                "//i[contains(@class,'chevron-right') or "
-                                "contains(@class,'arrow-right') or "
-                                "contains(@class,'fa-chevron-right') or "
-                                "contains(@class,'fa-angle-right')]/.."
-                            )
-                            next_btn.click()
-                            log(f"  Navigated to month {month_i+2}")
-                            time.sleep(2)
-                        except Exception:
-                            log(f"  No next month button — stopping at month {month_i+1}")
-                            break
-
-            except TimeoutException:
-                log(f"  Timed out for {location}", "WARN")
             except Exception as e:
-                log(f"  Error for {location}: {e}", "WARN")
+                log(f"[{vehicle_label}] {location}: error — {e}", "WARN")
 
     except Exception as e:
-        log(f"[{vehicle_label}] Page load error: {e}", "ERROR")
+        log(f"[{vehicle_label}] Page error: {e}", "ERROR")
     finally:
         driver.quit()
 
     if not all_slots:
         return None
 
-    # Return the earliest slot across all locations
     all_slots.sort(key=lambda x: x[0])
     return all_slots[0]
+
 
 # ── Step 2: Book the slot ─────────────────────────────────────────────────────
 
