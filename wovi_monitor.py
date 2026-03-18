@@ -12,13 +12,15 @@ import re
 import smtplib
 import sys
 import time
+from datetime import datetime, timezone, timedelta
+from email.mime.text import MIMEText
+from pathlib import Path
 import requests
 
 # ── Timezone: Adelaide (ACST/ACDT) ───────────────────────────────────────────
 
 def adelaide_now() -> datetime:
     """Return current time in Adelaide timezone."""
-    from datetime import timezone, timedelta
     import zoneinfo
     try:
         adelaide_tz = zoneinfo.ZoneInfo("Australia/Adelaide")
@@ -26,9 +28,6 @@ def adelaide_now() -> datetime:
     except Exception:
         utc_now = datetime.now(timezone.utc)
         return utc_now.replace(tzinfo=None) + timedelta(hours=9, minutes=30)
-from datetime import datetime, timezone, timedelta
-from email.mime.text import MIMEText
-from pathlib import Path
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
