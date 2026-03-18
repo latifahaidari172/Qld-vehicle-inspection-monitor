@@ -179,8 +179,17 @@ def fill(driver, value: str, *names):
         for attr in ["name", "id", "ng-model"]:
             try:
                 el = driver.find_element(By.XPATH, f"//input[@{attr}='{name}']")
-                el.clear()
-                el.send_keys(value)
+                # Scroll into view first
+                driver.execute_script("arguments[0].scrollIntoView({block:'center'});", el)
+                time.sleep(0.3)
+                # Clear and fill via JS to bypass interactability issues
+                driver.execute_script("arguments[0].value='';", el)
+                driver.execute_script(
+                    "arguments[0].value=arguments[1];"
+                    "arguments[0].dispatchEvent(new Event('input',{bubbles:true}));"
+                    "arguments[0].dispatchEvent(new Event('change',{bubbles:true}));",
+                    el, value
+                )
                 return True
             except NoSuchElementException:
                 pass
@@ -325,7 +334,8 @@ def book_slot(location: str, date_dt: datetime, date_str: str,
         click_next(driver, wait)
         time.sleep(2)
 
-        # Vehicle details
+        # Vehicle details — wait for page to be ready
+        time.sleep(3)
         log(f"[{vehicle_label}] Filling vehicle details...")
         vtype = vehicle["type"].lower()
         try:
