@@ -13,7 +13,20 @@ import smtplib
 import sys
 import time
 import requests
-from datetime import datetime
+
+# ── Timezone: Adelaide (ACST/ACDT) ───────────────────────────────────────────
+
+def adelaide_now() -> datetime:
+    """Return current time in Adelaide timezone."""
+    from datetime import timezone, timedelta
+    import zoneinfo
+    try:
+        adelaide_tz = zoneinfo.ZoneInfo("Australia/Adelaide")
+        return datetime.now(adelaide_tz).replace(tzinfo=None)
+    except Exception:
+        utc_now = datetime.now(timezone.utc)
+        return utc_now.replace(tzinfo=None) + timedelta(hours=9, minutes=30)
+from datetime import datetime, timezone, timedelta
 from email.mime.text import MIMEText
 from pathlib import Path
 
@@ -42,7 +55,7 @@ LOCATIONS = [
 # ── Logging ───────────────────────────────────────────────────────────────────
 
 def log(msg: str, level: str = "INFO"):
-    ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    ts = adelaide_now().strftime("%Y-%m-%d %H:%M:%S")
     print(f"[{ts}] [{level}] {msg}", flush=True)
 
 
@@ -567,7 +580,7 @@ def process_vehicle(vehicle_label: str, vehicle: dict, owner: dict,
     log(f"{'='*55}")
     log(f"Processing {vehicle_label} — cutoff: {cutoff.strftime('%d/%m/%Y')}")
     log(f"{'='*55}")
-    now = datetime.now()
+    now = adelaide_now()
 
     # Step 1: Find earliest slot
     result = find_earliest_slot(cutoff, vehicle_label)
@@ -732,7 +745,7 @@ def process_vehicle(vehicle_label: str, vehicle: dict, owner: dict,
     log(f"Processing {vehicle_label} — looking for slots before "
         f"{cutoff.strftime('%d/%m/%Y')}")
     log(f"{'='*55}")
-    now = datetime.now()
+    now = adelaide_now()
 
     # Find earliest slot
     result = find_earliest_slot(cutoff, vehicle_label)
@@ -792,7 +805,7 @@ def process_vehicle(vehicle_label: str, vehicle: dict, owner: dict,
 
 def send_daily_summary(gmail_addr: str, gmail_pass: str, notify_addr: str):
     import json
-    now       = datetime.now()
+    now       = adelaide_now()
     today_str = now.strftime("%d/%m/%Y")
 
     # Count today's checks and any slots found from CSV
@@ -882,7 +895,7 @@ def run():
 # ── Daily summary ─────────────────────────────────────────────────────────────
 
 def send_daily_summary(gmail_addr: str, gmail_pass: str, notify_addr: str):
-    now       = datetime.now()
+    now       = adelaide_now()
     today_str = now.strftime("%d/%m/%Y")
 
     v1_slots  = []
