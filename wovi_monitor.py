@@ -121,7 +121,7 @@ def make_driver() -> webdriver.Chrome:
     opts.add_argument("--disable-gpu")
     opts.add_argument("--window-size=1280,900")
     opts.add_argument("--log-level=3")
-    opts.binary_location = "/usr/bin/google-chrome"
+    # Chrome binary found automatically via PATH
     driver = webdriver.Chrome(options=opts)
     driver.set_page_load_timeout(30)
     return driver
@@ -244,7 +244,7 @@ def find_earliest_slot(cutoff: datetime, vehicle_label: str) -> tuple | None:
 
     try:
         driver.get(BOOKING_URL)
-        time.sleep(4)
+        time.sleep(2)
 
         for location in LOCATIONS:
             try:
@@ -262,7 +262,7 @@ def find_earliest_slot(cutoff: datetime, vehicle_label: str) -> tuple | None:
 
                 # Wait for Angular calendar to render
                 try:
-                    WebDriverWait(driver, 12).until(lambda d: len(
+                    WebDriverWait(driver, 8).until(lambda d: len(
                         d.find_elements(By.XPATH, "//div[@ng-click='setDateValue(day)']")
                     ) > 0)
                 except TimeoutException:
@@ -320,7 +320,7 @@ def book_slot(location: str, date_dt: datetime, date_text: str,
     try:
         log(f"[{vehicle_label}] Starting booking: {location} on {date_text}")
         driver.get(BOOKING_URL)
-        time.sleep(4)
+        time.sleep(2)
 
         # ── Location ──────────────────────────────────────────────────────────
         loc_sel = wait.until(EC.presence_of_element_located((By.XPATH,
@@ -657,7 +657,7 @@ def run():
 
     try:
         driver.get(BOOKING_URL)
-        time.sleep(4)
+        time.sleep(2)
 
         for vehicle_label, vehicle, cutoff in [
             ("Vehicle 1", v1, cutoff1),
@@ -679,7 +679,7 @@ def run():
                         continue
 
                     try:
-                        WebDriverWait(driver, 12).until(lambda d: len(
+                        WebDriverWait(driver, 8).until(lambda d: len(
                             d.find_elements(By.XPATH, "//div[@ng-click=\'setDateValue(day)\']")
                         ) > 0)
                     except TimeoutException:
