@@ -263,7 +263,25 @@ def find_earliest_slot(cutoff: datetime, vehicle_label: str) -> tuple | None:
                         f"{[o.text for o in select.options]}", "WARN")
                     continue
 
-                time.sleep(3)  # wait for calendar to load
+                time.sleep(5)  # wait for calendar to load
+
+                # Wait until at least one td.day appears (up to 10s)
+                try:
+                    WebDriverWait(driver, 10).until(
+                        EC.presence_of_element_located((By.XPATH,
+                            "//td[contains(@class,'day')]"
+                        ))
+                    )
+                except TimeoutException:
+                    log(f"  Calendar did not load for {location}", "WARN")
+
+                # Log ALL day cells including disabled so we can see what's there
+                all_cells = driver.find_elements(By.XPATH, "//td[contains(@class,'day')]")
+                log(f"  Total day cells (incl disabled): {len(all_cells)}")
+                if all_cells:
+                    sample = all_cells[0]
+                    log(f"  Sample cell class='{sample.get_attribute('class')}' text='{sample.text}'")
+                    log(f"  Sample cell data-date='{sample.get_attribute('data-date')}'")
 
                 # Read available (non-disabled) calendar dates
                 date_cells = driver.find_elements(By.XPATH,
@@ -768,3 +786,148 @@ def process_vehicle(vehicle_label: str, vehicle: dict, owner: dict,
             f"Slot may still be available — act quickly!",
             gmail_addr, gmail_pass, notify_addr
         )
+
+
+# ── Daily 5pm summary ─────────────────────────────────────────────────────────
+
+def send_daily_summary(gmail_addr: str, gmail_pass: str, notify_addr: str):
+    import json
+    now       = datetime.now()
+    today_str = now.strftime("%d/%m/%Y")
+
+    # Count today's checks and any slots found from CSV
+    today_checks     = 0
+    slots_found      = []
+    bookings_made    = []
+
+    if CSV_FILE.exists():
+        with open(CSV_FILE, newline="") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                if row.get("Date") == today_str:
+                    today_checks += 1
+                    result = row.get("Result", "")
+                    if result == "Earlier slot found":
+                        slots_found.append(
+                            f"  {row['Time']} — {row['Vehicle']} at "
+                            f"{row['Location']}: {row['Detail']}"
+                        )
+                    elif result == "BOOKED":
+                        bookings_made.append(
+                            f"  {row['Time']} — {row['Vehicle']} at "
+                            f"{row['Location']}: {row['Detail']}"
+                        )
+
+    # Load current cutoffs from state
+    state = load_state()
+    v1_current = state.get("vehicle_1_booked_date", "Not yet rescheduled")
+    v2_current = state.get("vehicle_2_booked_date", "Not yet rescheduled")
+
+    # Build email body
+    slots_section = (
+        "\n".join(slots_found)
+        if slots_found
+        else "  No earlier slots found at any location today."
+    )
+    bookings_section = (
+        "\n".join(bookings_made)
+        if bookings_made
+        else "  No bookings made today."
+    )
+
+    body = (
+        f"WOVI Daily Summary — {today_str}\n"
+        f"{'=' * 45}\n\n"
+        f"Total checks run today: {today_checks}\n\n"
+        f"Current booking status:\n"
+        f"  BYD  (Vehicle 1): {v1_current}\n"
+        f"  Kia  (Vehicle 2): {v2_current}\n\n"
+        f"Earlier slots seen today:\n{slots_section}\n\n"
+        f"Bookings made today:\n{bookings_section}\n\n"
+        f"Locations monitored: {', '.join(LOCATIONS)}\n\n"
+        f"The monitor checks every 1 min (6:30–10am) and every\n"
+        f"5 min (rest of day) and will auto-reschedule when an\n"
+        f"earlier slot is found.\n\n"
+        f"View full history: open wovi_results.csv in your\n"
+        f"GitHub repository."
+    )
+
+    send_email(
+        f"📋 WOVI Daily Summary — {today_str}",
+        body,
+        gmail_addr, gmail_pass, notify_addr
+    )
+    log("Daily summary email sent.")
+
+
+# ── Patch run() to include daily summary ──────────────────────────────────────
+
+_original_run = run
+
+
+def run():
+    daily_summary = os.environ.get("DAILY_SUMMARY", "false").lower() == "true"
+
+    if not daily_summary:
+        # Normal check run
+        _original_run()
+    else:
+        # Daily summary run — still do a check AND send summary
+        _original_run()
+        gmail_addr  = get_env("GMAIL_ADDRESS")
+        gmail_pass  = get_env("GMAIL_APP_PASSWORD")
+        notify_addr = get_env("NOTIFY_EMAIL")
+        send_daily_summary(gmail_addr, gmail_pass, notify_addr)
+
+# ── Daily summary ─────────────────────────────────────────────────────────────
+
+def send_daily_summary(gmail_addr: str, gmail_pass: str, notify_addr: str):
+    now       = datetime.now()
+    today_str = now.strftime("%d/%m/%Y")
+
+    v1_slots  = []
+    v2_slots  = []
+    v1_checks = 0
+    v2_checks = 0
+
+    if CSV_FILE.exists():
+        with open(CSV_FILE, newline="") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                if row.get("Date") != today_str:
+                    continue
+                vehicle = row.get("Vehicle", "")
+                result  = row.get("Result", "")
+                detail  = row.get("Detail", "")
+                loc     = row.get("Location", "")
+
+                if "1" in vehicle:
+                    v1_checks += 1
+                    if result not in ("No earlier slots", "Error", ""):
+                        v1_slots.append(f"  {row['Time']} — {loc}: {result} {detail}")
+                elif "2" in vehicle:
+                    v2_checks += 1
+                    if result not in ("No earlier slots", "Error", ""):
+                        v2_slots.append(f"  {row['Time']} — {loc}: {result} {detail}")
+
+    def section(label, checks, slots):
+        if slots:
+            return f"{label}:\nChecks today: {checks}\nSlots seen:\n" + "\n".join(slots)
+        return f"{label}:\nChecks today: {checks}\nNo earlier slots seen today."
+
+    body = (
+        f"WOVI Daily Summary — {today_str}\n"
+        f"{'=' * 40}\n\n"
+        f"{section('Vehicle 1 (BYD)', v1_checks, v1_slots)}\n\n"
+        f"{section('Vehicle 2 (Kia)', v2_checks, v2_slots)}\n\n"
+        f"Monitor checks every 1 min (6:30–10am) and 5 mins (rest of day).\n"
+        f"Will auto-book the earliest slot found before each cutoff date.\n\n"
+        f"View full history: open wovi_results.csv in your GitHub repository."
+    )
+
+    send_email(
+        f"📋 WOVI Daily Summary — {today_str}",
+        body,
+        gmail_addr, gmail_pass, notify_addr
+    )
+    log("Daily summary email sent.")
