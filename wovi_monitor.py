@@ -295,30 +295,77 @@ def find_earliest_slot(cutoff: datetime, vehicle_label: str) -> tuple | None:
                     log(f"  Sample cell class='{sample.get_attribute('class')}' text='{sample.text}'")
                     log(f"  Sample cell data-date='{sample.get_attribute('data-date')}'")
 
-                # Read available (non-disabled) calendar dates
-                date_cells = driver.find_elements(By.XPATH,
-                    "//td[contains(@class,'day') "
-                    "and not(contains(@class,'disabled')) "
-                    "and not(contains(@class,'old')) "
-                    "and not(contains(@class,'new')) "
-                    "and not(contains(@class,'unavailable'))] | "
-                    "//div[contains(@class,'day') and contains(@class,'available')]"
-                )
-                log(f"  Available date cells: {len(date_cells)}")
+                # WOVI calendar uses AngularJS with span.available marking available days
+                # day.value contains the full date string
+                # We read dates via Angular scope using JavaScript
 
-                for cell in date_cells:
-                    date_text = (
-                        cell.get_attribute("data-date") or
-                        cell.get_attribute("data-day") or
-                        cell.get_attribute("title") or
-                        cell.text.strip()
+                months_checked = 0
+                max_months = 4
+
+                while months_checked < max_months:
+                    time.sleep(2)
+
+                    # Get all available day spans using Angular scope
+                    # span has class 'available' and parent div has ng-click='setDateValue(day)'
+                    avail_spans = driver.find_elements(By.XPATH,
+                        "//div[@ng-click='setDateValue(day)']"
+                        "//span[contains(@class,'available') and not(contains(@class,'disabled'))]"
                     )
-                    if not date_text:
-                        continue
-                    dt = parse_date(date_text)
-                    if dt and dt < cutoff:
-                        log(f"  ✅ Earlier slot at {location}: {date_text}")
-                        all_slots.append((dt, date_text, location))
+                    log(f"  Month {months_checked+1}: {len(avail_spans)} available span(s)")
+
+                    for span in avail_spans:
+                        try:
+                            # Get day.value from Angular scope — this is the full date
+                            day_value = driver.execute_script(
+                                "try {"
+                                "  var el = arguments[0];"
+                                "  var scope = angular.element(el).scope();"
+                                "  return scope.day ? scope.day.value : null;"
+                                "} catch(e) { return null; }",
+                                span
+                            )
+                            if not day_value:
+                                # Try parent element scope
+                                parent = span.find_element(By.XPATH, "./..")
+                                day_value = driver.execute_script(
+                                    "try {"
+                                    "  var el = arguments[0];"
+                                    "  var scope = angular.element(el).scope();"
+                                    "  return scope.day ? scope.day.value : null;"
+                                    "} catch(e) { return null; }",
+                                    parent
+                                )
+
+                            log(f"    day.value='{day_value}' text='{span.text}'")
+
+                            if not day_value:
+                                continue
+
+                            dt = parse_date(str(day_value))
+                            if dt and dt < cutoff:
+                                log(f"  ✅ Earlier slot at {location}: {day_value}")
+                                all_slots.append((dt, day_value, location))
+
+                        except Exception as e:
+                            log(f"    Error reading span: {e}", "WARN")
+
+                    months_checked += 1
+                    if months_checked < max_months:
+                        # Click next month button
+                        try:
+                            next_btn = driver.find_element(By.XPATH,
+                                "//*[@ng-click='nextMonth()' or @ng-click='vm.nextMonth()' or "
+                                "contains(@class,'next-month') or contains(@class,'next') and "
+                                "contains(@ng-click,'month') or @aria-label='Next month'] | "
+                                "//button[contains(@class,'next')] | "
+                                "//i[contains(@class,'right') or contains(@class,'next')]/.."
+                            )
+                            next_btn.click()
+                            log(f"  Clicked next month")
+                            time.sleep(2)
+                        except Exception:
+                            log(f"  No next month button found — stopping")
+                            break
 
             except TimeoutException:
                 log(f"  Timed out for {location}", "WARN")
