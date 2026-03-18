@@ -94,3 +94,12 @@ jobs:
           git add wovi_results.csv wovi_state.json
           git diff --staged --quiet || git commit -m "Update WOVI results [skip ci]"
           git push
+
+      - name: Upload debug files
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-${{ github.run_number }}
+          path: |
+            debug_page_source.html
+          if-no-files-found: ignore
