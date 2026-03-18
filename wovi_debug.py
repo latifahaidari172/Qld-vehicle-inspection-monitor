@@ -62,6 +62,53 @@ for sel in selects:
 print("Waiting 15 seconds for calendar to load...")
 time.sleep(15)
 
+# Try scrolling to calendar
+driver.execute_script("window.scrollTo(0, 500);")
+time.sleep(2)
+
+# Log all div.item elements
+items = driver.find_elements(By.XPATH, "//div[@ng-click='setDateValue(day)']")
+print(f"\ndiv[ng-click=setDateValue(day)] count: {len(items)}")
+if items:
+    for item in items[:5]:
+        print(f"  text='{item.text}' class='{item.get_attribute('class')}'")
+        # Try Angular scope
+        try:
+            val = driver.execute_script(
+                "try { var s=angular.element(arguments[0]).scope(); return s.day ? JSON.stringify(s.day) : 'no day'; } catch(e) { return 'error:'+e; }",
+                item
+            )
+            print(f"  scope.day={val}")
+        except Exception as e:
+            print(f"  scope error: {e}")
+
+# Log all spans with available class
+avail = driver.find_elements(By.XPATH, "//span[contains(@class,'available')]")
+print(f"\nspan.available count: {len(avail)}")
+for sp in avail[:5]:
+    print(f"  text='{sp.text}' class='{sp.get_attribute('class')}'")
+    try:
+        val = driver.execute_script(
+            "try { var s=angular.element(arguments[0]).scope(); return s.day ? JSON.stringify(s.day) : 'no day'; } catch(e) { return 'error:'+e; }",
+            sp
+        )
+        print(f"  scope.day={val}")
+    except Exception as e:
+        print(f"  scope error: {e}")
+
+# Check if Angular is loaded
+try:
+    ng_version = driver.execute_script("return angular.version.full;")
+    print(f"\nAngular version: {ng_version}")
+except Exception as e:
+    print(f"\nAngular not found: {e}")
+
+# Check for iframes
+iframes = driver.find_elements(By.TAG_NAME, "iframe")
+print(f"\niframes found: {len(iframes)}")
+for iframe in iframes:
+    print(f"  src='{iframe.get_attribute('src')}'")
+
 # Scroll down to calendar area
 driver.execute_script("window.scrollTo(0, 600);")
 time.sleep(1)
