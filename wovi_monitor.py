@@ -651,12 +651,115 @@ def run():
     }
     cutoff2 = parse_cutoff(get_env("WOVI_V2_CUTOFF_DATE"))
 
-    # Run both vehicles
-    process_vehicle("Vehicle 1", v1, owner, cutoff1,
-                    api_key, gmail_addr, gmail_pass, notify_addr)
+    # Use a single browser session for both vehicles to save startup time
+    driver = make_driver()
+    wait   = WebDriverWait(driver, 20)
 
-    process_vehicle("Vehicle 2", v2, owner, cutoff2,
-                    api_key, gmail_addr, gmail_pass, notify_addr)
+    try:
+        driver.get(BOOKING_URL)
+        time.sleep(4)
+
+        for vehicle_label, vehicle, cutoff in [
+            ("Vehicle 1", v1, cutoff1),
+            ("Vehicle 2", v2, cutoff2),
+        ]:
+            log(f"Checking {vehicle_label} — cutoff {cutoff.strftime('%d/%m/%Y')}")
+            all_slots = []
+
+            for location in LOCATIONS:
+                try:
+                    loc_sel = wait.until(EC.presence_of_element_located((By.XPATH,
+                        "//select[.//option[contains(text(),'Brisbane')]]"
+                    )))
+                    for opt in Select(loc_sel).options:
+                        if location.lower() in opt.text.lower():
+                            Select(loc_sel).select_by_visible_text(opt.text)
+                            break
+                    else:
+                        continue
+
+                    try:
+                        WebDriverWait(driver, 12).until(lambda d: len(
+                            d.find_elements(By.XPATH, "//div[@ng-click=\'setDateValue(day)\']")
+                        ) > 0)
+                    except TimeoutException:
+                        log(f"  {location}: timeout")
+                        continue
+
+                    items = driver.find_elements(By.XPATH, "//div[@ng-click=\'setDateValue(day)\']")
+                    found = 0
+                    for item in items:
+                        try:
+                            d = driver.execute_script(
+                                "try{var s=angular.element(arguments[0]).scope();"
+                                "if(!s||!s.day||!s.day.available||!s.day.thisMonth) return null;"
+                                "return s.day.value;}catch(e){return null;}", item
+                            )
+                            if not d:
+                                continue
+                            dt = parse_date(d)
+                            if dt and dt < cutoff:
+                                all_slots.append((dt, d, location))
+                                found += 1
+                        except Exception:
+                            continue
+
+                    log(f"  {location}: {found} slot(s) before cutoff")
+
+                except Exception as e:
+                    log(f"  {location}: error — {e}", "WARN")
+
+            now = datetime.now() if not callable(getattr(__builtins__, 'adelaide_now', None)) else adelaide_now()
+
+            if not all_slots:
+                log(f"{vehicle_label}: no earlier slots.")
+                write_csv(now, vehicle_label, "All locations", "No earlier slots", "")
+            else:
+                all_slots.sort(key=lambda x: x[0])
+                earliest_dt, earliest_text, earliest_location = all_slots[0]
+                log(f"{vehicle_label}: earliest slot {earliest_text} at {earliest_location}")
+                write_csv(now, vehicle_label, earliest_location, "Earlier slot found", earliest_text)
+
+                # Book it using a fresh browser session
+                driver.quit()
+                confirmed = book_slot(
+                    earliest_location, earliest_dt, earliest_text,
+                    owner, vehicle, api_key, vehicle_label
+                )
+                driver = make_driver()
+                wait   = WebDriverWait(driver, 20)
+                driver.get(BOOKING_URL)
+                time.sleep(4)
+
+                state = load_state()
+                state_key = vehicle_label.lower().replace(" ", "_") + "_booked_date"
+
+                if confirmed:
+                    state[state_key] = earliest_dt.strftime("%Y-%m-%d")
+                    save_state(state)
+                    write_csv(now, vehicle_label, earliest_location, "BOOKED", earliest_text)
+                    send_email(
+                        f"WOVI BOOKED — {vehicle_label} — {earliest_location} {earliest_text}",
+                        f"Rescheduled!\n\nVehicle: {vehicle_label} ({vehicle['make']} {vehicle['model']})\n"
+                        f"Location: {earliest_location}\nDate: {earliest_text}\n\n"
+                        f"Verify at: {BOOKING_URL}\nContact: 1300 722 411 / adminqis@wovi.com.au",
+                        gmail_addr, gmail_pass, notify_addr
+                    )
+                else:
+                    write_csv(now, vehicle_label, earliest_location, "BOOKING FAILED", earliest_text)
+                    send_email(
+                        f"WOVI slot found but booking failed — {vehicle_label}",
+                        f"Earlier slot found but auto-booking failed.\n\n"
+                        f"Vehicle: {vehicle_label}\nLocation: {earliest_location}\nDate: {earliest_text}\n\n"
+                        f"Book manually NOW: {BOOKING_URL}",
+                        gmail_addr, gmail_pass, notify_addr
+                    )
+
+    finally:
+        try:
+            driver.quit()
+        except Exception:
+            pass
 
     log("All done.")
 
