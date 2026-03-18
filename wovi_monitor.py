@@ -295,76 +295,70 @@ def find_earliest_slot(cutoff: datetime, vehicle_label: str) -> tuple | None:
                     log(f"  Sample cell class='{sample.get_attribute('class')}' text='{sample.text}'")
                     log(f"  Sample cell data-date='{sample.get_attribute('data-date')}'")
 
-                # WOVI calendar uses AngularJS with span.available marking available days
-                # day.value contains the full date string
-                # We read dates via Angular scope using JavaScript
+                # WOVI uses AngularJS — day items have ng-click='setDateValue(day)'
+                # Angular scope contains day.value (ISO date), day.available (bool)
+                # We read directly via JavaScript scope — no iframe needed
 
-                months_checked = 0
-                max_months = 4
-
-                while months_checked < max_months:
+                for month_i in range(4):
                     time.sleep(2)
 
-                    # Get all available day spans using Angular scope
-                    # span has class 'available' and parent div has ng-click='setDateValue(day)'
-                    avail_spans = driver.find_elements(By.XPATH,
+                    # Get all day items for this month
+                    day_items = driver.find_elements(By.XPATH,
                         "//div[@ng-click='setDateValue(day)']"
-                        "//span[contains(@class,'available') and not(contains(@class,'disabled'))]"
                     )
-                    log(f"  Month {months_checked+1}: {len(avail_spans)} available span(s)")
+                    log(f"  Month {month_i+1}: {len(day_items)} day items")
 
-                    for span in avail_spans:
+                    for item in day_items:
                         try:
-                            # Get day.value from Angular scope — this is the full date
-                            day_value = driver.execute_script(
-                                "try {"
-                                "  var el = arguments[0];"
-                                "  var scope = angular.element(el).scope();"
-                                "  return scope.day ? scope.day.value : null;"
-                                "} catch(e) { return null; }",
-                                span
+                            # Read full day data from Angular scope
+                            day_data = driver.execute_script(
+                                "try{"
+                                "  var s=angular.element(arguments[0]).scope();"
+                                "  if(!s||!s.day) return null;"
+                                "  return {value:s.day.value, available:s.day.available, "
+                                "          thisMonth:s.day.thisMonth, remaining:s.day.remaining};"
+                                "}catch(e){return null;}",
+                                item
                             )
-                            if not day_value:
-                                # Try parent element scope
-                                parent = span.find_element(By.XPATH, "./..")
-                                day_value = driver.execute_script(
-                                    "try {"
-                                    "  var el = arguments[0];"
-                                    "  var scope = angular.element(el).scope();"
-                                    "  return scope.day ? scope.day.value : null;"
-                                    "} catch(e) { return null; }",
-                                    parent
-                                )
-
-                            log(f"    day.value='{day_value}' text='{span.text}'")
-
-                            if not day_value:
+                            if not day_data:
                                 continue
+
+                            # Only consider days in this month that are available
+                            if not day_data.get("available"):
+                                continue
+                            if not day_data.get("thisMonth"):
+                                continue
+
+                            day_value = day_data.get("value")
+                            remaining = day_data.get("remaining", 0)
+
+                            log(f"    Available: {day_value} remaining={remaining}")
 
                             dt = parse_date(str(day_value))
                             if dt and dt < cutoff:
-                                log(f"  ✅ Earlier slot at {location}: {day_value}")
+                                log(f"  ✅ Earlier slot at {location}: {day_value} ({remaining} remaining)")
                                 all_slots.append((dt, day_value, location))
 
-                        except Exception as e:
-                            log(f"    Error reading span: {e}", "WARN")
+                        except Exception as ex:
+                            log(f"    Item error: {ex}", "WARN")
 
-                    months_checked += 1
-                    if months_checked < max_months:
-                        # Click next month button
+                    # Navigate to next month
+                    if month_i < 3:
                         try:
                             next_btn = driver.find_element(By.XPATH,
                                 "//*[@ng-click='nextMonth()' or @ng-click='vm.nextMonth()' or "
-                                "contains(@class,'next-month') or contains(@class,'next') and "
-                                "contains(@ng-click,'month') or @aria-label='Next month'] | "
+                                "contains(@class,'next-month') or @aria-label='Next month'] | "
                                 "//button[contains(@class,'next')] | "
-                                "//i[contains(@class,'right') or contains(@class,'next')]/.."
+                                "//i[contains(@class,'chevron-right') or "
+                                "contains(@class,'arrow-right') or "
+                                "contains(@class,'fa-chevron-right') or "
+                                "contains(@class,'fa-angle-right')]/.."
                             )
                             next_btn.click()
-                            log(f"  Clicked next month")
+                            log(f"  Navigated to month {month_i+2}")
                             time.sleep(2)
                         except Exception:
-                            log(f"  No next month button found — stopping")
+                            log(f"  No next month button — stopping at month {month_i+1}")
                             break
 
             except TimeoutException:
