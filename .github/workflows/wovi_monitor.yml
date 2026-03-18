@@ -7,6 +7,11 @@ on:
     - cron: '*/5 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19 * * *'
     - cron: '30 7 * * *'     # 5:00pm Adelaide time daily summary
   workflow_dispatch:
+    inputs:
+      force_daily_summary:
+        description: 'Force daily summary email? (true/false)'
+        required: false
+        default: 'false'
 
 jobs:
   check-wovi:
@@ -38,7 +43,7 @@ jobs:
 
       - name: Set daily summary flag
         run: |
-          if [ "${{ github.event.schedule }}" = "30 7 * * *" ]; then
+          if [ "${{ github.event.schedule }}" = "30 7 * * *" ] || [ "${{ github.event.inputs.force_daily_summary }}" = "true" ]; then
             echo "DAILY_SUMMARY=true" >> $GITHUB_ENV
           else
             echo "DAILY_SUMMARY=false" >> $GITHUB_ENV
