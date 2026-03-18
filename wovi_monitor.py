@@ -142,15 +142,31 @@ def solve_captcha(api_key: str) -> str | None:
         log(f"CAPTCHA submitted (id={cid}), waiting...")
         for _ in range(24):
             time.sleep(5)
-            p = requests.get("http://2captcha.com/res.php", params={
-                "key": api_key, "action": "get", "id": cid, "json": 1
-            }, timeout=10).json()
-            if p.get("status") == 1:
-                log("CAPTCHA solved!")
-                return p["request"]
-            if p.get("request") != "CAPCHA_NOT_READY":
-                log(f"2captcha error: {p}", "ERROR")
-                return None
+            try:
+                resp = requests.get("http://2captcha.com/res.php", params={
+                    "key": api_key, "action": "get", "id": cid, "json": 1
+                }, timeout=10)
+                # Handle both JSON and plain text responses
+                try:
+                    p = resp.json()
+                    if p.get("status") == 1:
+                        log("CAPTCHA solved!")
+                        return p["request"]
+                    if p.get("request") != "CAPCHA_NOT_READY":
+                        log(f"2captcha error: {p}", "ERROR")
+                        return None
+                except Exception:
+                    # Plain text response e.g. "OK|token" or "CAPCHA_NOT_READY"
+                    text = resp.text.strip()
+                    if text.startswith("OK|"):
+                        log("CAPTCHA solved!")
+                        return text[3:]
+                    if text != "CAPCHA_NOT_READY":
+                        log(f"2captcha response: {text}", "ERROR")
+                        return None
+            except Exception as ex:
+                log(f"Poll error: {ex}", "WARN")
+                continue
         log("CAPTCHA timed out", "ERROR")
         return None
     except Exception as e:
