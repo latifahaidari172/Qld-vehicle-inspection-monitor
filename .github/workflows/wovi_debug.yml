@@ -37,6 +37,9 @@ jobs:
           name: wovi-debug
           path: |
             debug_01_initial.png
-            debug_02_after_brisbane.png
+            debug_02_calendar_top.png
+            debug_03_calendar_mid.png
+            debug_04_calendar_bottom.png
+            debug_05_full_page.png
             debug_page_source.html
           if-no-files-found: ignore
