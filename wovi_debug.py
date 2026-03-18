@@ -62,9 +62,29 @@ for sel in selects:
 print("Waiting 15 seconds for calendar to load...")
 time.sleep(15)
 
-# Screenshot after selection
-driver.save_screenshot("debug_02_after_brisbane.png")
-print("Screenshot saved: debug_02_after_brisbane.png")
+# Scroll down to calendar area
+driver.execute_script("window.scrollTo(0, 600);")
+time.sleep(1)
+driver.save_screenshot("debug_02_calendar_top.png")
+print("Screenshot saved: debug_02_calendar_top.png")
+
+driver.execute_script("window.scrollTo(0, 1200);")
+time.sleep(1)
+driver.save_screenshot("debug_03_calendar_mid.png")
+print("Screenshot saved: debug_03_calendar_mid.png")
+
+driver.execute_script("window.scrollTo(0, 1800);")
+time.sleep(1)
+driver.save_screenshot("debug_04_calendar_bottom.png")
+print("Screenshot saved: debug_04_calendar_bottom.png")
+
+# Also set window very tall to capture everything in one shot
+driver.set_window_size(1280, 3000)
+time.sleep(1)
+driver.execute_script("window.scrollTo(0, 0);")
+time.sleep(1)
+driver.save_screenshot("debug_05_full_page.png")
+print("Screenshot saved: debug_05_full_page.png")
 
 # Save full page source
 src = driver.page_source
