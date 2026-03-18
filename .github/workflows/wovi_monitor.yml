@@ -89,7 +89,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: test-screenshots-${{ github.run_number }}
-          path: test_screenshot.png
+          path: step*.png
           if-no-files-found: ignore
 
       - name: Save results
