@@ -188,12 +188,15 @@ def fill(driver, value: str, *names):
 
 def click_next(driver, wait):
     try:
-        btn = wait.until(EC.element_to_be_clickable((By.XPATH,
+        btn = wait.until(EC.presence_of_element_located((By.XPATH,
             "//button[contains(translate(.,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'next')] | "
             "//input[@type='submit'] | //button[@type='submit'] | "
             "//button[contains(translate(.,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'submit')]"
         )))
-        btn.click()
+        # Scroll into view and click via JavaScript to bypass any overlays
+        driver.execute_script("arguments[0].scrollIntoView({block:'center'});", btn)
+        time.sleep(0.5)
+        driver.execute_script("arguments[0].click();", btn)
         time.sleep(2)
         return True
     except TimeoutException:
