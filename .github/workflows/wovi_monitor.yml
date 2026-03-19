@@ -72,6 +72,7 @@ jobs:
           WOVI_V1_DAMAGE:          ${{ secrets.WOVI_V1_DAMAGE }}
           WOVI_V1_PURCHASE_METHOD: ${{ secrets.WOVI_V1_PURCHASE_METHOD }}
           WOVI_V1_PURCHASED_FROM:  ${{ secrets.WOVI_V1_PURCHASED_FROM }}
+          WOVI_V1_BUILD_MONTH:     ${{ secrets.WOVI_V1_BUILD_MONTH }}
           WOVI_V2_CUTOFF_DATE:     ${{ secrets.WOVI_V2_CUTOFF_DATE }}
           WOVI_V2_VEHICLE_TYPE:    ${{ secrets.WOVI_V2_VEHICLE_TYPE }}
           WOVI_V2_VIN:             ${{ secrets.WOVI_V2_VIN }}
@@ -82,6 +83,7 @@ jobs:
           WOVI_V2_DAMAGE:          ${{ secrets.WOVI_V2_DAMAGE }}
           WOVI_V2_PURCHASE_METHOD: ${{ secrets.WOVI_V2_PURCHASE_METHOD }}
           WOVI_V2_PURCHASED_FROM:  ${{ secrets.WOVI_V2_PURCHASED_FROM }}
+          WOVI_V2_BUILD_MONTH:     ${{ secrets.WOVI_V2_BUILD_MONTH }}
         run: python wovi_monitor.py
 
       - name: Upload test screenshots
