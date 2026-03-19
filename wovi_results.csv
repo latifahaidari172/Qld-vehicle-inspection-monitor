@@ -1,6 +1,4 @@
 Date,Time,Vehicle,Location,Result,Detail
-19/03/2026,12:06:40 PM,Vehicle 1,All locations,No earlier slots,
-19/03/2026,12:06:42 PM,Vehicle 2,All locations,No earlier slots,
 19/03/2026,12:07:39 PM,Vehicle 1,All locations,No earlier slots,
 19/03/2026,12:07:41 PM,Vehicle 2,All locations,No earlier slots,
 19/03/2026,12:08:38 PM,Vehicle 1,All locations,No earlier slots,
@@ -59,3 +57,5 @@ Date,Time,Vehicle,Location,Result,Detail
 19/03/2026,12:36:33 PM,Vehicle 2,All locations,No earlier slots,
 19/03/2026,12:37:36 PM,Vehicle 1,All locations,No earlier slots,
 19/03/2026,12:37:37 PM,Vehicle 2,All locations,No earlier slots,
+19/03/2026,12:38:40 PM,Vehicle 1,All locations,No earlier slots,
+19/03/2026,12:38:42 PM,Vehicle 2,All locations,No earlier slots,
