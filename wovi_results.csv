@@ -1,4 +1,6 @@
 Date,Time,Vehicle,Location,Result,Detail
+19/03/2026,01:12:34 PM,Vehicle 1,All locations,No earlier slots,
+19/03/2026,01:12:36 PM,Vehicle 2,All locations,No earlier slots,
 19/03/2026,01:13:38 PM,Vehicle 1,All locations,No earlier slots,
 19/03/2026,01:13:40 PM,Vehicle 2,All locations,No earlier slots,
 19/03/2026,01:14:34 PM,Vehicle 1,All locations,No earlier slots,
@@ -55,7 +57,5 @@ Date,Time,Vehicle,Location,Result,Detail
 19/03/2026,01:39:38 PM,Vehicle 2,All locations,No earlier slots,
 19/03/2026,01:40:41 PM,Vehicle 1,All locations,No earlier slots,
 19/03/2026,01:40:43 PM,Vehicle 2,All locations,No earlier slots,
-19/03/2026,01:42:03 PM,Vehicle 1,Narangba,Earlier slot found,2026-04-21
-19/03/2026,01:42:06 PM,Vehicle 2,Narangba,Earlier slot found,2026-04-21
-19/03/2026,01:42:06 PM,Vehicle 1,Narangba,BOOKING FAILED,2026-04-21
-19/03/2026,01:42:14 PM,Vehicle 2,Narangba,BOOKING FAILED,2026-04-21
+19/03/2026,01:42:41 PM,Vehicle 1,All locations,No earlier slots,
+19/03/2026,01:42:42 PM,Vehicle 2,All locations,No earlier slots,
