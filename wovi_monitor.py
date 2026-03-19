@@ -375,6 +375,19 @@ def book_slot(location: str, date_dt: datetime, date_str: str,
         fill(driver, vehicle["colour"],         "colour", "color", "vehicleColour")
         fill(driver, vehicle["purchased_from"], "purchasedFrom", "sellerName")
 
+        # Build month
+        try:
+            month_sel = driver.find_element(By.XPATH,
+                "//select[contains(@ng-model,'buildDateMonth') or contains(@name,'buildDateMonth') or "
+                "contains(@ng-model,'month') and contains(@ng-model,'build')]"
+            )
+            try:
+                Select(month_sel).select_by_value(vehicle["build_month"])
+            except Exception:
+                Select(month_sel).select_by_visible_text(vehicle["build_month"])
+        except Exception:
+            pass
+
         try:
             Select(driver.find_element(By.XPATH,
                 "//select[contains(@ng-model,'damage') or contains(@name,'damage')]"
@@ -563,6 +576,7 @@ def run():
             "damage":          get_env("WOVI_V2_DAMAGE"),
             "purchase_method": get_env("WOVI_V2_PURCHASE_METHOD"),
             "purchased_from":  get_env("WOVI_V2_PURCHASED_FROM"),
+            "build_month":     get_env("WOVI_V2_BUILD_MONTH"),
         }, parse_cutoff(get_env("WOVI_V2_CUTOFF_DATE"))),
     ]
 
