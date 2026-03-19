@@ -459,3 +459,6 @@ Date,Time,Vehicle,Location,Result,Detail
 19/03/2026,10:10:25 AM,Vehicle 2,All locations,No earlier slots,
 19/03/2026,10:30:04 AM,Vehicle 1,All locations,No earlier slots,
 19/03/2026,10:30:06 AM,Vehicle 2,All locations,No earlier slots,
+19/03/2026,11:36:26 AM,Vehicle 1,All locations,No earlier slots,
+19/03/2026,11:36:28 AM,Vehicle 2,Yatala,Earlier slot found,2026-05-29
+19/03/2026,11:36:28 AM,Vehicle 2,Yatala,BOOKING FAILED,2026-05-29
